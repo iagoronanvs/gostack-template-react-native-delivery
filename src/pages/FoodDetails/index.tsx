@@ -74,6 +74,18 @@ const FoodDetails: React.FC = () => {
   useEffect(() => {
     async function loadFood(): Promise<void> {
       // Load a specific food with extras based on routeParams id
+
+      const response = await api.get(`/foods/${routeParams.id}`);
+
+      const tmpFood = response.data as Food;
+
+      const parseExtras = tmpFood.extras.map(extra => ({
+        ...extra,
+        quantity: 0,
+      }));
+
+      setExtras(parseExtras);
+      setFood(tmpFood);
     }
 
     loadFood();
@@ -81,18 +93,39 @@ const FoodDetails: React.FC = () => {
 
   function handleIncrementExtra(id: number): void {
     // Increment extra quantity
+    const index = extras.findIndex(findExtra => findExtra.id === id);
+
+    if (index !== -1) {
+      const tmpExtras = [...extras];
+
+      tmpExtras[index].quantity += 1;
+
+      setExtras(tmpExtras);
+    }
   }
 
   function handleDecrementExtra(id: number): void {
     // Decrement extra quantity
+
+    const index = extras.findIndex(findExtra => findExtra.id === id);
+
+    if (index !== -1 && extras[index].quantity > 0) {
+      const tmpExtras = [...extras];
+
+      tmpExtras[index].quantity -= 1;
+
+      setExtras(tmpExtras);
+    }
   }
 
   function handleIncrementFood(): void {
     // Increment food quantity
+    setFoodQuantity(qtd => qtd + 1);
   }
 
   function handleDecrementFood(): void {
     // Decrement food quantity
+    setFoodQuantity(qtd => (qtd > 1 ? qtd - 1 : qtd));
   }
 
   const toggleFavorite = useCallback(() => {
@@ -101,10 +134,26 @@ const FoodDetails: React.FC = () => {
 
   const cartTotal = useMemo(() => {
     // Calculate cartTotal
+    let extraTotal = food ? food.price * foodQuantity : 0;
+
+    extras.forEach(extra => {
+      extraTotal += extra.value * extra.quantity;
+    });
+
+    return formatValue(extraTotal);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
     // Finish the order and save on the API
+
+    const { id, ...rest } = {
+      ...food,
+      extras,
+    };
+
+    await api.post('/orders', rest);
+
+    navigation.navigate('Orders');
   }
 
   // Calculate the correct icon name
